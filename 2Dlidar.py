@@ -13,6 +13,7 @@ IMG_HEIGHT = 200
 ORIGIN_X = IMG_WIDTH/2
 ORIGIN_Y = IMG_HEIGHT/2
 THRESH = 0.6
+safty_THRESH = 0.3
 
 img = np.zeros((IMG_HEIGHT, IMG_WIDTH,3), np.uint8)
 img = cv2.circle(img, ((int)(ORIGIN_X), (int)(ORIGIN_Y)), (int)(THRESH*100), (0, 0, 255), 1)
@@ -30,6 +31,8 @@ img = drawLine(img, 288)
 img = drawLine(img, 324)
 img = drawLine(img, 360)
 
+prev_direction = 270
+
 def LaserScanProcess(distList):
     temp = np.asarray(distList)
     distList = np.where(temp==0, 10, temp)
@@ -42,94 +45,115 @@ def LaserScanProcess(distList):
     }
     return gRegions
 
-def drawArrow(img, direction, index = 270):
-	if direction == "f":
-		index
-	elif direction == "fr":
-		index += 36
-	elif direction == "fl":
-		index -= 36
-	elif direction == "r":
-		index += 36 + 36
-	elif direction == "l":
-		index -= 36 + 36
+def drawArrow(img, direction):
+	if direction == "stop":
+		return img
+	else:
+		_x = math.cos(math.pi/180*direction)*THRESH*0.8
+		_y = math.sin(math.pi/180*direction)*THRESH*0.8
+		img = cv2.arrowedLine(img, ((int)(ORIGIN_X), (int)(ORIGIN_Y)), ((int)(ORIGIN_X + _x*ORIGIN_X), (int)(ORIGIN_Y + _y*ORIGIN_Y)), (0, 255, 0), 2)
+		return img
 
-	_x = math.cos(math.pi/180*index)*THRESH*0.8
-	_y = math.sin(math.pi/180*index)*THRESH*0.8
-
-	img = cv2.arrowedLine(img, ((int)(ORIGIN_X), (int)(ORIGIN_Y)), ((int)(ORIGIN_X + _x*ORIGIN_X), (int)(ORIGIN_Y + _y*ORIGIN_Y)), (0, 255, 0), 2)
-	return img
-
-def move(regions):
+def move(regions, index_angle = 270):
 	direction = "f"
+	f = index_angle
+	fr = f + 36
+	fl = f - 36
+	r = f + 36 + 36 + 18
+	l = f - 36 - 36 - 18
+	pl = 0
+	pr = 0
+	b = f - 180
+	safty_dist = safty_THRESH
+
 	state_description = "Unknow  state"
 	d = THRESH
 
 	if regions["front"] > d and regions["front_left"]>d and regions["front_right"]>d:
 		state_description =  "case 1 - No Obstacles"
-		direction = "f"
+		direction = f
 	elif regions["front"] < d and regions["front_left"]>d and regions["front_right"]>d:
-		if regions["left"] < regions["right"]:
-			state_description =  "case 2 - Obstacles in Front, move right"
-			direction = "r"
-		elif regions["left"] >= regions["right"]:
-			state_description =  "case 2 - obstacles in Front, move left"
-			direction = "l"
+		if regions["front"] < safty_dist:
+			if regions["left"] < regions["right"]:
+				state_description =  "case 10 - Obstacles in Front too closely, move right"
+				direction = r
+			elif regions["left"] >= regions["right"]:
+				state_description =  "case 10 - obstacles in Front too closely, move left"
+				direction = l
+		elif regions["front"] >= safty_dist:
+			if regions["left"] < regions["right"]:
+				state_description =  "case 2 - Obstacles in Front, move smoothly right"
+				direction = fr
+			elif regions["left"] >= regions["right"]:
+				state_description =  "case 2 - obstacles in Front, move smoothly left"
+				direction = fl
 	elif regions["front"] > d and regions["front_left"]>d and regions["front_right"]<d:
 		state_description =  "case 3 - Obstacles in Front_Right, move smoothly left"
-		direction = "fl"
+		direction = fl
 	elif regions["front"] > d and regions["front_left"]<d and regions["front_right"]>d:
 		state_description =  "case 4 - Obstacles in Front_Left, move smoothly right"
-		direction = "fr"
+		direction = fr
 	elif regions["front"] < d and regions["front_left"]>d and regions["front_right"]<d:
 		state_description =  "case 5 - Obstacles in Front and Front_Right, move left"
-		direction = "l"
+		direction = l
 	elif regions["front"] < d and regions["front_left"]<d and regions["front_right"]>d:
 		state_description =  "case 6 - Obstacles in Front and Front_Left, move right"
-		direction = "r"
+		direction = r
 
 	# When obstacles in all front 3 areas were detected
 	elif regions["front"] < d and regions["front_left"]<d and regions["front_right"]<d:
 		if regions["front"] < 0.3:
 			if regions["left"] > regions["right"]:
 				state_description =  "case 0 - Danger, move left"
-				direction = "l"
+				direction = l
 			elif regions["left"] <= regions["right"]:
 				state_description =  "case 0 - Danger, move right"
-				direction = "r"
+				direction = r
 		elif abs(regions["front_left"]-regions["front_right"]) < 0.05:
-			state_description =  "case 7 - Stuck, so move left"
-			direction = "l"
+			state_description =  "case 7 - Stuck, move backward"
+			direction = b
 		elif regions["front_left"] > regions["front_right"]:
-			state_description =  "case 7 - All, pivot left"
-			direction = "pl"
+			state_description =  "case 7 - Stuck, pivot left"
+			direction = pl
 		elif regions["front_left"] < regions["front_right"]:
-			state_description =  "case 7 - All, pivot right"
-			direction = "pr"
-        #else:
-        #	state_description =  "case 7 - All, else"
+			state_description =  "case 7 - Stuck, pivot right"
+			direction = pr
 
 	elif regions["front"] > d and regions["front_left"]<d and regions["front_right"]<d:
-		state_description =  "case 8 - Obstacles in Front_Right and Front_Left, Stop"
-		direction = "stop"
+		state_description =  "case 8 - Obstacles in Front_Right and Front_Left, move backward"
+		direction = b
 	elif regions["front"] > d and regions["front_left"]>d and regions["front_right"]>d and regions["left"] < d and regions["right"] >d:
 		state_description =  "case 9 - Left wall detected, move smoothly right"
-		direction = "fr"
+		direction = fr
 	elif regions["front"] > d and regions["front_left"]>d and regions["front_right"]>d and regions["left"] > d and regions["right"] <d:
 		state_description =  "case 9 - Right wall detected, move smoothly left"
-		direction = "fl"
+		direction = fl
 
     #print(state_description)
 	return state_description, direction
 
+def smooth_direction(direction, prev_direction, grad = 0.5):
+	error = direction - prev_direction
+	if abs(error) < 3:
+		s_direction = direction
+	else:
+		s_direction = prev_direction + error*grad
+	if s_direction >= 360:
+		s_direction = 360
+	elif s_direction <= 180:
+		s_direction = 180
 
-def callback(data):
-	global myRobot
-	global imgVerbose, img
+	return s_direction
+
+def callback(data, smoothed = True):
+	global imgVerbose, img, prev_direction
 	distList = data.ranges
 	gRegions = LaserScanProcess(distList)
 	state_description, direction = move(gRegions)
 	print(state_description)
+	if smoothed == True:
+		direction = smooth_direction(direction, prev_direction)
+		prev_direction = direction
 
 	if imgVerbose:
 		img2 = img.copy()
@@ -150,8 +174,6 @@ def listener():
 	rospy.init_node('listner', anonymous=True)
 	rospy.Subscriber("/scan", LaserScan, callback)
 	rospy.spin()
-
-
 
 if __name__ == "__main__":
 	try:
