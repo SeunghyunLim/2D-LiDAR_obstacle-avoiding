@@ -1,5 +1,5 @@
 # 2D-LiDAR Obstacle Avoiding
-Special thanks to [Taekyung Kim](https://github.com/ktk1501)
+Special thanks to [Taekyung Kim](https://github.com/ktk1501), the contributor
 ## Requirements & Envs
 On ubuntu 18.04, ros-melodic
 ```
