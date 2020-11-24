@@ -14,3 +14,10 @@ roslaunch hls_lfcd_lds_driver hlds_laser.launch
 ## Smoothed direction OFF
 
 <center><img src="https://github.com/SeunghyunLim/2D-LiDAR/blob/main/gif/2dLiDAR_avoiding.gif" alt="drawing" width="980"/></center>
+
+## Application on simulation(pybullet)
+
+<center><img src="https://github.com/SeunghyunLim/2D-LiDAR/blob/main/gif/sim_avoiding.gif" alt="drawing" width="980"/></center>
+
+## Application on real-world robot
+<center><img src="https://github.com/SeunghyunLim/2D-LiDAR/blob/main/gif/real_avoiding.gif" alt="drawing" width="980"/></center>
