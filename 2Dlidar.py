@@ -150,12 +150,12 @@ def callback(data, smoothed = True):
 	distList = data.ranges
 	gRegions = LaserScanProcess(distList)
 	state_description, direction = move(gRegions)
-	print(state_description)
 	if smoothed == True:
 		direction = smooth_direction(direction, prev_direction)
 		prev_direction = direction
-
+		
 	if imgVerbose:
+		print(state_description)
 		img2 = img.copy()
 		for idx, elem in enumerate(distList):
 			if elem > VALID_DIST_THRES :
