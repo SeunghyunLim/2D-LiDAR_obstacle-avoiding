@@ -1,11 +1,16 @@
 import rospy
 from sensor_msgs.msg import LaserScan
+from std_msgs.msg import Int32
 from time import sleep
-from matplotlib import pyplot as plt
 import cv2
 import math
 import numpy as np
 import threading
+
+global dv, dangle
+dv = 0
+dangle = 0
+
 
 VALID_DIST_THRES = 1.0
 IMG_WIDTH = 200
@@ -17,6 +22,7 @@ safty_THRESH = 0.3
 
 img = np.zeros((IMG_HEIGHT, IMG_WIDTH,3), np.uint8)
 img = cv2.circle(img, ((int)(ORIGIN_X), (int)(ORIGIN_Y)), (int)(THRESH*100), (0, 0, 255), 1)
+
 
 def drawLine(img, index):
 	_x = math.cos(math.pi/180*index)*THRESH
@@ -146,16 +152,22 @@ def smooth_direction(direction, prev_direction, grad = 0.5):
 	return s_direction
 
 def callback(data, smoothed = True):
-	global imgVerbose, img, prev_direction
+	global imgVerbose, img, prev_direction, dangle
 	distList = data.ranges
 	gRegions = LaserScanProcess(distList)
 	state_description, direction = move(gRegions)
 	if smoothed == True:
 		direction = smooth_direction(direction, prev_direction)
 		prev_direction = direction
-		
+
+	print(direction - 270)
+
+	dangle = direction - 270
+	
+	pub = rospy.Publisher('direction', Int32, queue_size=1)
+	pub.publish(dangle)
+
 	if imgVerbose:
-		print(state_description)
 		img2 = img.copy()
 		for idx, elem in enumerate(distList):
 			if elem > VALID_DIST_THRES :
@@ -168,7 +180,7 @@ def callback(data, smoothed = True):
 		img2 = cv2.resize(img2, None, fx=3, fy=3)
 		cv2.imshow("pointcloud", img2)
 		cv2.waitKey(1)
-
+		
 
 def listener():
 	rospy.init_node('listner', anonymous=True)
