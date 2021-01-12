@@ -1,5 +1,4 @@
 # 2D-LiDAR Obstacle Avoiding
-Special thanks to [Taekyung Kim](https://github.com/ktk1501), the contributor
 ## Requirements & Envs
 On ubuntu 18.04, ros-melodic
 ```
@@ -22,3 +21,6 @@ roslaunch hls_lfcd_lds_driver hlds_laser.launch
 
 ## Application on real-world robot
 <center><img src="https://github.com/SeunghyunLim/2D-LiDAR/blob/main/gif/real_avoiding.gif" alt="drawing" width="980"/></center>
+
+### Special thanks
+[Taekyung Kim](https://github.com/ktk1501), as a contributor
